@@ -92,7 +92,9 @@ main { max-width: 880px; margin: 0 auto; padding: 24px 20px 64px; }
 }
 .input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
 .input-small { min-width: 0; width: 110px; flex: none; }
+.input-select { min-width: 0; width: auto; flex: none; padding-right: 8px; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
+.hint { font-size: 12.5px; color: var(--ink-3); margin: 10px 0 0; }
 
 /* wizard */
 .stepper {
@@ -157,6 +159,9 @@ main { max-width: 880px; margin: 0 auto; padding: 24px 20px 64px; }
 .runner-title { display: flex; align-items: center; gap: 10px; }
 .runner-icon { font-size: 20px; }
 .runner-controls { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+/* Equal box heights so the field labels sit on one line despite the native
+   select rendering taller than a number input. */
+.runner-controls .input, .runner-controls .btn { height: 40px; }
 .runner-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 13px; color: var(--ink-2); }
 
 .pill {

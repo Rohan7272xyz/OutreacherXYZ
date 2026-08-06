@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const {
-  extractEmails, isPlausibleLeadEmail, parseFollowers, inFollowerRange,
+  extractEmails, isPlausibleLeadEmail, parseFollowers, inFollowerRange, paceWaitMs,
   isInWindow, minutesUntil, parseClock, minutesOfDayInZone, isRetryableApiError, withRetry,
 } = require('../src/lib/util');
 
@@ -57,6 +57,24 @@ test('inFollowerRange enforces both bounds', () => {
 
 test('inFollowerRange keeps leads whose follower count could not be read', () => {
   assert.ok(inFollowerRange(null, { minFollowers: 10000, maxFollowers: 250000 }));
+});
+
+test('paceWaitMs waits out the remainder of the target interval', () => {
+  const interval = 30000; // 120 profiles/hour
+  assert.strictEqual(paceWaitMs(10000, interval), 20000);
+  assert.strictEqual(paceWaitMs(0, interval), 30000);
+  // Work that already took longer than the interval needs no extra wait.
+  assert.strictEqual(paceWaitMs(45000, interval), 0);
+});
+
+test('paceWaitMs applies jitter so the cadence is not metronomic', () => {
+  assert.strictEqual(paceWaitMs(0, 30000, 0.25), 37500);
+  assert.strictEqual(paceWaitMs(0, 30000, -0.25), 22500);
+});
+
+test('paceWaitMs treats a zero interval as no limit', () => {
+  assert.strictEqual(paceWaitMs(0, 0), 0);
+  assert.strictEqual(paceWaitMs(5000, 0), 0);
 });
 
 test('isInWindow handles windows that wrap past midnight', () => {

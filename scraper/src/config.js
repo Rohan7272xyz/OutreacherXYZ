@@ -30,6 +30,11 @@ const config = {
   minFollowers: num(env.MIN_FOLLOWERS, 0),
   maxFollowers: num(env.MAX_FOLLOWERS, Infinity),
 
+  // How many profiles to open per hour. The engine can go roughly 450/hr flat
+  // out, which looks nothing like a person browsing and is what gets an account
+  // rate limited or challenged. Default well below that; 0 removes the limit.
+  profilesPerHour: num(env.PROFILES_PER_HOUR, 120),
+
   // Optional nightly pause, for machines whose network is cut on a schedule.
   // Off unless BLACKOUT_ENABLED is set — it was specific to one original host.
   blackout: {

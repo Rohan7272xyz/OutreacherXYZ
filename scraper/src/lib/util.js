@@ -61,6 +61,14 @@ function inFollowerRange(followers, { minFollowers = 0, maxFollowers = Infinity 
   return followers >= (minFollowers || 0) && followers <= (maxFollowers === null ? Infinity : maxFollowers);
 }
 
+// How long to hold off before the next profile visit in order to average out at
+// a target rate. `jitter` (roughly -0.25..0.25) spreads successive intervals so
+// the cadence isn't metronomic. An interval of 0 means "no limit".
+function paceWaitMs(elapsedMs, intervalMs, jitter = 0) {
+  if (!intervalMs || intervalMs <= 0) return 0;
+  return Math.max(0, intervalMs * (1 + jitter) - elapsedMs);
+}
+
 function randomDelayMs(minSec, maxSec, jitter = true) {
   let ms = (minSec + Math.random() * (maxSec - minSec)) * 1000;
   if (jitter) ms *= 0.85 + Math.random() * 0.3;
@@ -133,6 +141,7 @@ module.exports = {
   extractEmails,
   parseFollowers,
   inFollowerRange,
+  paceWaitMs,
   randomDelayMs,
   sleep,
   minutesOfDayInZone,

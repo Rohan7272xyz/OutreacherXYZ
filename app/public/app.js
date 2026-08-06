@@ -173,6 +173,7 @@ function buildRunner(target) {
     pillText: tpl.querySelector('[data-role=pill-text]'),
     min: tpl.querySelector('[data-role=min]'),
     max: tpl.querySelector('[data-role=max]'),
+    pace: tpl.querySelector('[data-role=pace]'),
     start: tpl.querySelector('[data-role=start]'),
     stop: tpl.querySelector('[data-role=stop]'),
     banner: tpl.querySelector('[data-role=login-banner]'),
@@ -187,6 +188,7 @@ function buildRunner(target) {
     const res = await api.post(`/api/run/${target}`, {
       min: el.min.value || undefined,
       max: el.max.value || undefined,
+      pace: el.pace.value,
     });
     if (res.error) alert(res.error);
     el.log.classList.remove('hidden');

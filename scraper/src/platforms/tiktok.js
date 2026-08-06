@@ -198,6 +198,8 @@ class TikTokScraper extends BaseScraper {
         this.stats.profiles++;
 
         this.log(`Video ${videoCount}: @${username} — checking profile`);
+        await this.pace();
+        if (this.stopping) break;
         const data = await this.scrapeProfile(username);
         await this.recordLead(username, data.followers, [data.bio]);
 

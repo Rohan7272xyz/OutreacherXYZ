@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
 const { SheetsSync } = require('../sheets');
 const { VisitedStore } = require('./visited');
 const {
-  extractEmails, parseFollowers, inFollowerRange, randomDelayMs, sleep,
+  extractEmails, parseFollowers, inFollowerRange, randomDelayMs, sleep, paceWaitMs,
   minutesOfDayInZone, isInWindow, minutesUntil,
 } = require('./util');
 
@@ -23,6 +23,10 @@ class BaseScraper {
     this.sheets = new SheetsSync(config.deviceName);
     this.stopping = false;
     this.stats = { checked: 0, profiles: 0, found: 0, skipped: 0 };
+
+    // Rate governor: hold the profile-visit rate near config.profilesPerHour.
+    this.paceIntervalMs = config.profilesPerHour > 0 ? 3600000 / config.profilesPerHour : 0;
+    this.lastProfileAt = 0;
 
     if (!fs.existsSync(config.outputDir)) {
       fs.mkdirSync(config.outputDir, { recursive: true });
@@ -115,6 +119,22 @@ class BaseScraper {
     } catch (err) {
       this.log('Could not save session: ' + err.message);
     }
+  }
+
+  // Wait, if needed, so profile visits average out at the configured hourly
+  // rate. Call this immediately before opening a profile; the long delays
+  // elsewhere count towards the interval rather than adding to it.
+  async pace() {
+    if (!this.paceIntervalMs) return;
+    if (this.lastProfileAt) {
+      const jitter = (Math.random() - 0.5) * 0.5;
+      const wait = paceWaitMs(Date.now() - this.lastProfileAt, this.paceIntervalMs, jitter);
+      if (wait > 1000) {
+        this.log(`  (holding ${(wait / 1000).toFixed(0)}s to stay near ${this.config.profilesPerHour}/hour)`);
+        await this.interruptibleSleep(wait);
+      }
+    }
+    this.lastProfileAt = Date.now();
   }
 
   // Open a profile in its own tab so the feed tab keeps its scroll position.

@@ -62,10 +62,19 @@ Everything is an environment variable, so the control panel can set it without e
 | `SHEET_ID` | — | Target spreadsheet. Unset = leads go to `output/leads-backup.csv` only. |
 | `LEADS_TAB` | `crosscheck` | Tab new leads are appended to. |
 | `MIN_FOLLOWERS` / `MAX_FOLLOWERS` | `0` / none | Follower gate. Both bounds are enforced. |
+| `PROFILES_PER_HOUR` | `120` | Rate limit on profile visits. `0` removes it. See below. |
 | `HEADLESS` | `false` | Headed by default — you need to see the browser to log in. |
 | `PERSIST_VISITED` | `true` | Remember checked creators across restarts (`output/visited-*.json`). |
 | `BLACKOUT_ENABLED` | `false` | Optional nightly pause, for a machine whose network is cut on a schedule. |
 | `BLACKOUT_START` / `BLACKOUT_END` / `BLACKOUT_TZ` | `01:15` / `04:15` / `America/New_York` | When that pause runs. |
+
+### Speed vs. account safety
+
+The engine can open roughly **450 profiles an hour** flat out. Nobody browses like that, and it is the single clearest signal that an account is being automated — the likely outcome is a temporary block or a "confirm it's you" checkpoint rather than a permanent ban, but it is a real cost.
+
+So visits are rate-limited to **120 profiles/hour by default**, picked from the control panel's Speed dropdown (Careful 60 · Balanced 120 · Fast 240 · No limit) or with `PROFILES_PER_HOUR`. The governor measures from the start of one profile visit to the next and only waits for the shortfall, so the existing pauses count towards the interval rather than stacking on top of it. Each wait is jittered ±25% so the cadence isn't a metronome.
+
+Two things worth knowing: the tool never follows, likes, comments, or messages anyone — it only reads public profile pages, which is a much lower-risk category of activity than action spam. And it currently cannot tell a checkpoint page apart from a broken feed; if the account gets challenged it will cool down and retry rather than telling you. Use a secondary account rather than the one your audience follows.
 
 ### How the engine works
 

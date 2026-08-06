@@ -215,6 +215,8 @@ class InstagramScraper extends BaseScraper {
         this.stats.profiles++;
 
         this.log(`Reel ${reelCount}: @${username} — checking profile`);
+        await this.pace();
+        if (this.stopping) break;
         const data = await this.scrapeProfile(username);
         await this.recordLead(username, data.followers, [data.bio]);
 

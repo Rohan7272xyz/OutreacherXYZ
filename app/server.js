@@ -132,6 +132,7 @@ function startScraper(target, opts) {
       LEADS_TAB: cfg.leadsTab || 'crosscheck',
       MIN_FOLLOWERS: opts.min ? String(opts.min) : '0',
       MAX_FOLLOWERS: opts.max ? String(opts.max) : '',
+      PROFILES_PER_HOUR: opts.pace === undefined ? '120' : String(Number(opts.pace) || 0),
       DEVICE_NAME: cfg.deviceName || os.hostname(),
       BLACKOUT_ENABLED: cfg.blackoutEnabled ? '1' : '0',
     },

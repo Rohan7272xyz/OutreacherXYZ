@@ -26,7 +26,7 @@ const CREATORS = [
   { username: 'epsilon', followers: '88K', bio: 'hi@epsilon.co' },
 ];
 
-function buildScraper() {
+function buildScraper(overrides = {}) {
   const state = {
     index: 0,
     feedGotos: [],
@@ -78,12 +78,14 @@ function buildScraper() {
     addInitScript: async () => {},
   };
 
-  const scraper = new InstagramScraper({ ...config, campaign: 'test' });
+  const scraper = new InstagramScraper({ ...config, campaign: 'test', profilesPerHour: 0, ...overrides });
   scraper.page = feedPage;
   scraper.context = context;
   scraper.browser = { close: async () => {}, isConnected: () => false };
   scraper.delay = async () => {};
-  scraper.interruptibleSleep = async () => {};
+  // Record what the engine asks to sleep for instead of actually sleeping.
+  state.sleeps = [];
+  scraper.interruptibleSleep = async (ms) => { state.sleeps.push(ms); };
   scraper.clickVideo = async () => true;
 
   // End the run once the fixture creators are exhausted.
@@ -135,6 +137,26 @@ test('every creator is recorded as visited so they are not rechecked', async () 
   for (const c of CREATORS) {
     assert.ok(scraper.visited.has(c.username), `${c.username} not marked visited`);
   }
+});
+
+test('the rate governor holds profile visits back to the configured rate', async () => {
+  // 120/hr means one profile every 30s. The stubbed clock never advances, so
+  // every visit after the first should ask to wait roughly a full interval.
+  const { scraper, state } = buildScraper({ profilesPerHour: 120 });
+  await scraper.run();
+
+  const paceWaits = state.sleeps.filter((ms) => ms > 15000);
+  assert.strictEqual(paceWaits.length, 4, 'expected a hold before each profile after the first');
+  for (const ms of paceWaits) {
+    assert.ok(ms >= 22500 && ms <= 37500, `hold of ${ms}ms outside the jittered 30s interval`);
+  }
+});
+
+test('the rate governor is off when no limit is configured', async () => {
+  const { scraper, state } = buildScraper({ profilesPerHour: 0 });
+  await scraper.run();
+  assert.strictEqual(state.sleeps.filter((ms) => ms > 15000).length, 0,
+    'no long holds expected when unlimited');
 });
 
 test('shutdown closes the browser and reports totals', async () => {

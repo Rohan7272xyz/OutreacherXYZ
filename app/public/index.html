@@ -139,9 +139,18 @@
         <div class="runner-controls">
           <label class="field">Min followers <input type="number" data-role="min" class="input input-small" min="0" step="1000"></label>
           <label class="field">Max followers <input type="number" data-role="max" class="input input-small" min="0" step="1000"></label>
+          <label class="field">Speed
+            <select data-role="pace" class="input input-select">
+              <option value="60">Careful — 60 profiles/hr</option>
+              <option value="120" selected>Balanced — 120/hr</option>
+              <option value="240">Fast — 240/hr</option>
+              <option value="0">No limit</option>
+            </select>
+          </label>
           <button class="btn btn-primary" data-role="start">▶ Start</button>
           <button class="btn btn-danger hidden" data-role="stop">■ Stop</button>
         </div>
+        <p class="hint">Slower is safer for your account — these sites limit accounts that browse faster than a person could.</p>
         <div class="callout callout-warn hidden" data-role="login-banner">
           <div><strong>Your turn:</strong> a browser window just opened. Log in to your account there, then come back and press continue.</div>
           <button class="btn btn-primary" data-role="continue">I’m logged in — continue ✓</button>
