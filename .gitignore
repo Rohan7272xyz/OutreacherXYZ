@@ -1,0 +1,12 @@
+node_modules/
+output/
+session.json
+.env
+.vercel
+*.zip
+
+# real credentials — never commit these (use the .example templates)
+credentials.json
+oauth-creds*.json
+gmail-token*.json
+!*.example.json

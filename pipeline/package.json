@@ -1,0 +1,16 @@
+{
+  "name": "pipeline",
+  "version": "2.0.0",
+  "description": "Multi-company email pipeline - CoinFluence + CreatorPredict",
+  "scripts": {
+    "start": "node daily-pipeline.js",
+    "import": "node import-sent.js",
+    "filter": "node filter.js",
+    "send": "node send.js",
+    "auth-coinfluence": "node gmail-auth.js",
+    "auth-creatorpredict": "node gmail-auth-creatorpredict.js"
+  },
+  "dependencies": {
+    "googleapis": "^128.0.0"
+  }
+}

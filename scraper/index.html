@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CreatorPredict Command Center</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root {
+      --bg-void: #050508;
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-card: #16161f;
+      --bg-card-hover: #1a1a25;
+      --bg-elevated: #1e1e2a;
+      --border-subtle: #252530;
+      --border-default: #303040;
+      --border-hover: #404055;
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0b0;
+      --text-muted: #606070;
+      --accent-purple: #8b5cf6;
+      --accent-purple-light: #a78bfa;
+      --accent-purple-glow: rgba(139, 92, 246, 0.25);
+      --accent-purple-soft: rgba(139, 92, 246, 0.1);
+      --accent-violet: #7c3aed;
+      --accent-fuchsia: #c026d3;
+      --success: #10b981;
+      --success-soft: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --warning-soft: rgba(245, 158, 11, 0.15);
+      --error: #ef4444;
+      --error-soft: rgba(239, 68, 68, 0.15);
+      --info: #3b82f6;
+      --info-soft: rgba(59, 130, 246, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      background: var(--bg-void);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated gradient background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(ellipse 80% 50% at 20% 40%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 80% 60%, rgba(124, 58, 237, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 100% 100% at 50% 100%, rgba(192, 38, 211, 0.04) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Grid overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(139, 92, 246, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(139, 92, 246, 0.02) 1px, transparent 1px);
+      background-size: 80px 80px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #root {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-purple); }
+
+    /* Custom select */
+    select {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-family: 'IBM Plex Mono', monospace;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    select:hover { border-color: var(--accent-purple); }
+    select:focus { outline: none; border-color: var(--accent-purple); box-shadow: 0 0 0 2px var(--accent-purple-soft); }
+
+    /* Animations */
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes glow { 0%, 100% { box-shadow: 0 0 20px var(--accent-purple-glow); } 50% { box-shadow: 0 0 40px var(--accent-purple-glow); } }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    // ============ CONFIGURATION ============
+    const SHEET_ID = 'YOUR_SHEET_ID';
+    const AGENT_API_BASE = 'http://127.0.0.1:6767';
+
+    // ============ DATA FETCHING ============
+    const fetchSheetData = async () => {
+      const emails = [];
+      const statuses = {};
+      
+      // Fetch CoinFluence tab
+      try {
+        const url1 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=CoinFluence`;
+        const res1 = await fetch(url1);
+        const text1 = await res1.text();
+        const json1 = JSON.parse(text1.substring(47, text1.length - 2));
+        json1.table.rows.forEach(row => {
+          const col0 = row.c[0]?.v || '';
+          if (col0 && col0 !== 'email') {
+            emails.push({
+              email: col0,
+              username: row.c[1]?.v || '',
+              followers: parseInt(row.c[2]?.v) || 0,
+              device: row.c[3]?.v || 'unknown',
+              timestamp: row.c[4]?.v || '',
+              company: 'CoinFluence'
+            });
+          }
+        });
+      } catch (e) { console.log('CoinFluence fetch error:', e); }
+
+      // Fetch CreatorPredict tab
+      try {
+        const url2 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=CreatorPredict`;
+        const res2 = await fetch(url2);
+        const text2 = await res2.text();
+        const json2 = JSON.parse(text2.substring(47, text2.length - 2));
+        json2.table.rows.forEach(row => {
+          const col0 = row.c[0]?.v || '';
+          if (col0 && col0 !== 'email') {
+            emails.push({
+              email: col0,
+              username: row.c[1]?.v || '',
+              followers: parseInt(row.c[2]?.v) || 0,
+              device: row.c[3]?.v || 'unknown',
+              timestamp: row.c[4]?.v || '',
+              company: 'CreatorPredict'
+            });
+          }
+        });
+      } catch (e) { console.log('CreatorPredict fetch error:', e); }
+
+      // Fetch Status tab
+      try {
+        const url3 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Status`;
+        const res3 = await fetch(url3);
+        const text3 = await res3.text();
+        const json3 = JSON.parse(text3.substring(47, text3.length - 2));
+        json3.table.rows.forEach(row => {
+          const device = row.c[0]?.v || '';
+          if (device && device !== 'device') {
+            const status = row.c[1]?.v || '';
+            const timestamp = row.c[2]?.v || '';
+            const cooldownEnd = row.c[3]?.v || null;
+            const expectedNext = row.c[4]?.v || null;
+            statuses[device] = { status, cooldownEnd, timestamp, expectedNext };
+          }
+        });
+      } catch (e) { console.log('Status fetch error:', e); }
+
+      return { emails, statuses };
+    };
+
+    const calculateDeviceStats = (data, statuses) => {
+      const devices = {};
+      const now = new Date();
+      
+      data.forEach(entry => {
+        const device = entry.device;
+        if (!devices[device]) {
+          devices[device] = { name: device, emails: 0, lastSeen: null, firstSeen: null, recentEmails: 0 };
+        }
+        devices[device].emails++;
+        const entryTime = new Date(entry.timestamp);
+        
+        if (!devices[device].lastSeen || entryTime > devices[device].lastSeen) {
+          devices[device].lastSeen = entryTime;
+        }
+        if (!devices[device].firstSeen || entryTime < devices[device].firstSeen) {
+          devices[device].firstSeen = entryTime;
+        }
+        
+        const hourAgo = new Date(now - 60 * 60 * 1000);
+        if (entryTime > hourAgo) devices[device].recentEmails++;
+      });
+      
+      return Object.values(devices).map(device => {
+        const minutesSinceLastSeen = device.lastSeen ? Math.floor((now - device.lastSeen) / (1000 * 60)) : Infinity;
+        const hoursActive = device.firstSeen && device.lastSeen ? Math.max(1, (device.lastSeen - device.firstSeen) / (1000 * 60 * 60)) : 1;
+        
+        const reportedStatus = statuses[device.name];
+        let liveStatus = reportedStatus?.status || null;
+        let cooldownEnd = reportedStatus?.cooldownEnd ? new Date(reportedStatus.cooldownEnd) : null;
+        let cooldownRemaining = cooldownEnd ? Math.max(0, Math.floor((cooldownEnd - now) / (1000 * 60))) : 0;
+        
+        let status;
+        if (liveStatus === 'stuck-loop') status = 'stuck-loop';
+        else if (liveStatus === 'cooldown' && cooldownRemaining > 0) status = 'cooldown';
+        else if (liveStatus === 'break') status = 'break';
+        else if (liveStatus === 'blackout') status = 'blackout';
+        else if (minutesSinceLastSeen < 15) status = 'active';
+        else if (minutesSinceLastSeen < 60) status = 'warning';
+        else status = 'down';
+        
+        return {
+          ...device,
+          minutesSinceLastSeen,
+          emailsPerHour: Math.round(device.emails / hoursActive * 10) / 10,
+          status,
+          liveStatus,
+          cooldownRemaining,
+        };
+      }).sort((a, b) => {
+        const statusOrder = { 'active': 0, 'break': 1, 'cooldown': 2, 'warning': 3, 'stuck-loop': 4, 'down': 5 };
+        if (statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status];
+        return a.minutesSinceLastSeen - b.minutesSinceLastSeen;
+      });
+    };
+
+    // ============ SHARED COMPONENTS ============
+    const StatusDot = ({ status, size = 8 }) => {
+      const colors = {
+        'active': 'var(--success)',
+        'break': 'var(--info)',
+        'cooldown': 'var(--accent-purple)',
+        'warning': 'var(--warning)',
+        'stuck-loop': '#be123c',
+        'down': 'var(--error)',
+        'connected': 'var(--success)',
+        'error': 'var(--error)',
+        'loading': 'var(--warning)',
+      };
+      return (
+        <div style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          background: colors[status] || 'var(--text-muted)',
+          boxShadow: `0 0 ${size * 1.5}px ${colors[status] || 'var(--text-muted)'}`,
+          animation: status === 'active' || status === 'connected' ? 'pulse 2s ease-in-out infinite' : 'none',
+        }} />
+      );
+    };
+
+    const Badge = ({ children, variant = 'default', glow = false }) => {
+      const variants = {
+        default: { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' },
+        purple: { bg: 'var(--accent-purple-soft)', color: 'var(--accent-purple-light)', border: 'var(--accent-purple)' },
+        success: { bg: 'var(--success-soft)', color: 'var(--success)', border: 'var(--success)' },
+        warning: { bg: 'var(--warning-soft)', color: 'var(--warning)', border: 'var(--warning)' },
+        error: { bg: 'var(--error-soft)', color: 'var(--error)', border: 'var(--error)' },
+        info: { bg: 'var(--info-soft)', color: 'var(--info)', border: 'var(--info)' },
+      };
+      const v = variants[variant] || variants.default;
+      return (
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '4px 10px',
+          background: v.bg,
+          color: v.color,
+          border: `1px solid ${v.border}40`,
+          borderRadius: '6px',
+          fontSize: '11px',
+          fontWeight: 600,
+          fontFamily: "'IBM Plex Mono', monospace",
+          letterSpacing: '0.5px',
+          boxShadow: glow ? `0 0 15px ${v.border}30` : 'none',
+        }}>
+          {children}
+        </span>
+      );
+    };
+
+    const Card = ({ children, className = '', glow = false, ...props }) => (
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        transition: 'all 0.2s ease',
+        animation: glow ? 'glow 3s ease-in-out infinite' : 'none',
+        ...props.style
+      }} {...props}>
+        {children}
+      </div>
+    );
+
+    // ============ NAVIGATION ============
+    const TabNav = ({ activeTab, setActiveTab }) => (
+      <div style={{
+        display: 'flex',
+        gap: '4px',
+        padding: '4px',
+        background: 'var(--bg-secondary)',
+        borderRadius: '10px',
+        border: '1px solid var(--border-subtle)',
+      }}>
+        {[
+          { id: 'scraper', label: 'Scraper Fleet', icon: '⚡' },
+          { id: 'agent', label: 'Email Agent', icon: '✉' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 20px',
+              background: activeTab === tab.id ? 'var(--accent-purple)' : 'transparent',
+              border: 'none',
+              borderRadius: '8px',
+              color: activeTab === tab.id ? '#fff' : 'var(--text-secondary)',
+              fontSize: '13px',
+              fontWeight: 600,
+              fontFamily: "'Space Grotesk', sans-serif",
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <span>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    );
+
+    // ============ SCRAPER COMPONENTS ============
+    const ServerStatusBadge = ({ status, override, cooldownRemaining }) => {
+      if (override === 'decommissioned') return <Badge>DECOM</Badge>;
+      if (override === 'maintenance') return <Badge variant="info">MAINT</Badge>;
+      
+      const configs = {
+        'active': { variant: 'success', label: 'ACTIVE' },
+        'break': { variant: 'info', label: 'BREAK' },
+        'blackout': { variant: 'info', label: 'WIFI OFF' },
+        'cooldown': { variant: 'purple', label: `COOLDOWN ${cooldownRemaining}m` },
+        'warning': { variant: 'warning', label: 'IDLE' },
+        'stuck-loop': { variant: 'error', label: 'STUCK LOOP' },
+        'down': { variant: 'error', label: 'DOWN' },
+      };
+      const c = configs[status] || configs.down;
+      return <Badge variant={c.variant} glow={status === 'active'}>{c.label}</Badge>;
+    };
+
+    const AlertBanner = ({ devices, overrides }) => {
+      const stuckLoopDevices = devices.filter(d => d.status === 'stuck-loop' && !overrides[d.name]);
+      const downDevices = devices.filter(d => d.status === 'down' && !overrides[d.name]);
+      const warningDevices = devices.filter(d => d.status === 'warning' && !overrides[d.name]);
+      const cooldownDevices = devices.filter(d => d.status === 'cooldown' && !overrides[d.name]);
+      
+      const blackoutDevices = devices.filter(d => d.status === 'blackout' && !overrides[d.name]);
+      let variant, icon, title, subtitle;
+      
+      if (stuckLoopDevices.length > 0) {
+        variant = 'error';
+        icon = '⚠';
+        title = `STUCK LOOP: ${stuckLoopDevices.map(d => d.name).join(', ')}`;
+        subtitle = '3+ cooldowns in 1 hour - manual intervention required';
+      } else if (downDevices.length > 0) {
+        variant = 'error';
+        icon = '✕';
+        title = `${downDevices.length} server(s) DOWN`;
+        subtitle = `Offline: ${downDevices.map(d => d.name).join(', ')}`;
+      } else if (warningDevices.length > 0) {
+        variant = 'warning';
+        icon = '○';
+        title = `${warningDevices.length} server(s) idle`;
+        subtitle = `Idle >15min: ${warningDevices.map(d => d.name).join(', ')}`;
+      } else {
+        const cooldownMsg = cooldownDevices.length > 0 ? ` (${cooldownDevices.length} on cooldown)` : '';
+        const blackoutMsg = blackoutDevices.length > 0 ? ` (${blackoutDevices.length} wifi blackout)` : '';
+        variant = 'success';
+        icon = '✓';
+        title = `All Systems Operational${cooldownMsg}${blackoutMsg}`;
+        subtitle = 'All monitored servers are functioning normally';
+      }
+
+      const colors = {
+        success: { bg: 'var(--success-soft)', border: 'var(--success)', dot: 'var(--success)' },
+        warning: { bg: 'var(--warning-soft)', border: 'var(--warning)', dot: 'var(--warning)' },
+        error: { bg: 'var(--error-soft)', border: 'var(--error)', dot: 'var(--error)' },
+      };
+      const c = colors[variant];
+
+      return (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          padding: '16px 20px',
+          background: c.bg,
+          border: `1px solid ${c.border}40`,
+          borderLeft: `3px solid ${c.border}`,
+          borderRadius: '10px',
+          marginBottom: '24px',
+        }}>
+          <StatusDot status={variant === 'success' ? 'active' : variant === 'error' ? 'down' : 'warning'} size={10} />
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>{title}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{subtitle}</div>
+          </div>
+        </div>
+      );
+    };
+
+    const StatCard = ({ label, value, subvalue, color }) => (
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: '10px',
+        padding: '16px 20px',
+        flex: 1,
+        minWidth: '140px',
+      }}>
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          color: color || 'var(--text-muted)',
+          marginBottom: '8px',
+        }}>{label}</div>
+        <div style={{
+          fontSize: '28px',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          fontFamily: "'IBM Plex Mono', monospace",
+          lineHeight: 1,
+        }}>{value}</div>
+        {subvalue && (
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>{subvalue}</div>
+        )}
+      </div>
+    );
+
+    const ServerCard = ({ device, index, override, onOverrideChange }) => {
+      const formatMinutes = (mins) => {
+        if (mins === Infinity) return 'Never';
+        if (mins < 1) return 'Just now';
+        if (mins < 60) return `${mins}m ago`;
+        return `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
+      };
+      const formatTime = (date) => date ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Never';
+      
+      const borderColors = {
+        'active': 'var(--success)',
+        'break': 'var(--info)',
+        'cooldown': 'var(--accent-purple)',
+        'warning': 'var(--warning)',
+        'stuck-loop': '#be123c',
+        'down': 'var(--error)',
+      };
+      let borderColor = borderColors[device.status] || 'var(--error)';
+      if (override === 'decommissioned') borderColor = 'var(--text-muted)';
+      if (override === 'maintenance') borderColor = 'var(--info)';
+
+      return (
+        <Card style={{
+          borderLeft: `3px solid ${borderColor}`,
+          opacity: override ? 0.6 : 1,
+          minWidth: '260px',
+          flex: '1 1 260px',
+        }}>
+          <div style={{ padding: '16px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  Server {index + 1}
+                </div>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>{device.name}</div>
+              </div>
+              <ServerStatusBadge status={device.status} override={override} cooldownRemaining={device.cooldownRemaining} />
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {[
+                { label: 'Total', value: device.emails.toLocaleString() },
+                { label: 'Rate', value: `${device.emailsPerHour}/hr` },
+                { label: 'Last Hour', value: device.recentEmails },
+                { label: 'Last Seen', value: formatMinutes(device.minutesSinceLastSeen) },
+              ].map((stat, i) => (
+                <div key={i}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>{stat.label}</div>
+                  <div style={{ fontSize: '16px', fontWeight: 600, fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-primary)' }}>{stat.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div style={{
+            padding: '10px 20px',
+            borderTop: '1px solid var(--border-subtle)',
+            background: 'var(--bg-secondary)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: "'IBM Plex Mono', monospace" }}>
+              Last: {formatTime(device.lastSeen)}
+            </span>
+            <select
+              value={override || 'monitor'}
+              onChange={(e) => onOverrideChange(device.name, e.target.value === 'monitor' ? null : e.target.value)}
+            >
+              <option value="monitor">Monitoring</option>
+              <option value="decommissioned">Decommissioned</option>
+              <option value="maintenance">Maintenance</option>
+            </select>
+          </div>
+        </Card>
+      );
+    };
+
+    const LiveFeed = ({ data }) => {
+      const recent = [...data].reverse().slice(0, 8);
+      return (
+        <Card style={{ marginTop: '24px' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <StatusDot status="active" size={6} />
+              <span style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)' }}>
+                Live Feed
+              </span>
+            </div>
+          </div>
+          <div style={{ padding: '12px 16px' }}>
+            {recent.map((entry, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 12px',
+                background: i === 0 ? 'var(--accent-purple-soft)' : 'transparent',
+                borderRadius: '6px',
+                marginBottom: '4px',
+                border: i === 0 ? '1px solid var(--accent-purple)30' : '1px solid transparent',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ color: 'var(--accent-purple-light)', fontSize: '12px', fontFamily: "'IBM Plex Mono', monospace", minWidth: '100px' }}>
+                    @{entry.username.slice(0, 14)}
+                  </span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{entry.email}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{(entry.followers / 1000).toFixed(0)}K</span>
+                  <Badge>{entry.device}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      );
+    };
+
+    // ============ AGENT COMPONENTS ============
+    const AgentEndpoint = ({ method, path, description, onExecute, loading, response }) => {
+      const methodColors = {
+        GET: 'var(--accent-purple)',
+        POST: 'var(--success)',
+      };
+
+      return (
+        <Card style={{ marginBottom: '12px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 20px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <span style={{
+                padding: '4px 10px',
+                background: `${methodColors[method]}20`,
+                color: methodColors[method],
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: 700,
+                fontFamily: "'IBM Plex Mono', monospace",
+                letterSpacing: '0.5px',
+              }}>{method}</span>
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '13px', color: 'var(--text-primary)' }}>{path}</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', paddingLeft: '14px', borderLeft: '1px solid var(--border-subtle)' }}>{description}</span>
+            </div>
+            <button
+              onClick={onExecute}
+              disabled={loading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                background: loading ? 'var(--bg-elevated)' : 'var(--accent-purple)',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease',
+                opacity: loading ? 0.7 : 1,
+              }}
+            >
+              {loading ? (
+                <>
+                  <svg style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M21 12a9 9 0 11-6.219-8.56" />
+                  </svg>
+                  Running...
+                </>
+              ) : (
+                <>
+                  <svg style={{ width: 14, height: 14 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  Execute
+                </>
+              )}
+            </button>
+          </div>
+          
+          {response && (
+            <div style={{
+              padding: '16px 20px',
+              background: 'var(--bg-secondary)',
+              borderTop: '1px solid var(--border-subtle)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <StatusDot status={response.ok ? 'active' : 'down'} size={6} />
+                  <span style={{ fontSize: '11px', fontWeight: 500, color: response.ok ? 'var(--success)' : 'var(--error)' }}>
+                    {response.status} {response.statusText}
+                  </span>
+                </div>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: "'IBM Plex Mono', monospace" }}>
+                  {response.duration}ms
+                </span>
+              </div>
+              <pre style={{
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '6px',
+                padding: '12px',
+                fontSize: '11px',
+                fontFamily: "'IBM Plex Mono', monospace",
+                color: 'var(--text-secondary)',
+                overflow: 'auto',
+                maxHeight: '300px',
+                margin: 0,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}>
+                {JSON.stringify(response.data, null, 2)}
+              </pre>
+            </div>
+          )}
+        </Card>
+      );
+    };
+
+    // ============ SCRAPER TAB ============
+    const ScraperTab = () => {
+      const [data, setData] = React.useState([]);
+      const [devices, setDevices] = React.useState([]);
+      const [lastUpdate, setLastUpdate] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      const [overrides, setOverrides] = React.useState(() => {
+        const saved = localStorage.getItem('serverOverrides');
+        return saved ? JSON.parse(saved) : {};
+      });
+
+      const handleOverrideChange = (deviceName, value) => {
+        const newOverrides = { ...overrides };
+        if (value) newOverrides[deviceName] = value;
+        else delete newOverrides[deviceName];
+        setOverrides(newOverrides);
+        localStorage.setItem('serverOverrides', JSON.stringify(newOverrides));
+      };
+
+      const refreshData = React.useCallback(async () => {
+        try {
+          const { emails, statuses } = await fetchSheetData();
+          const deviceStats = calculateDeviceStats(emails, statuses);
+          setData(emails);
+          setDevices(deviceStats);
+          setLastUpdate(new Date());
+        } catch (err) {
+          console.error('Refresh error:', err);
+        } finally {
+          setLoading(false);
+        }
+      }, []);
+
+      React.useEffect(() => {
+        refreshData();
+        const interval = setInterval(refreshData, 30000);
+        return () => clearInterval(interval);
+      }, [refreshData]);
+
+      const coinFluenceEmails = data.filter(d => d.company === 'CoinFluence');
+      const creatorPredictEmails = data.filter(d => d.company === 'CreatorPredict');
+      const cfLastHour = coinFluenceEmails.filter(d => new Date(d.timestamp) > new Date(Date.now() - 3600000)).length;
+      const cpLastHour = creatorPredictEmails.filter(d => new Date(d.timestamp) > new Date(Date.now() - 3600000)).length;
+      const monitoredDevices = devices.filter(d => !overrides[d.name]);
+      const activeDevices = monitoredDevices.filter(d => ['active', 'break', 'cooldown'].includes(d.status)).length;
+
+      if (loading) {
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px', flexDirection: 'column', gap: '16px' }}>
+            <svg style={{ width: 32, height: 32, animation: 'spin 1s linear infinite', color: 'var(--accent-purple)' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 11-6.219-8.56" />
+            </svg>
+            <span style={{ color: 'var(--text-secondary)' }}>Loading scraper data...</span>
+          </div>
+        );
+      }
+
+      return (
+        <div style={{ animation: 'slideIn 0.3s ease' }}>
+          <AlertBanner devices={devices} overrides={overrides} />
+
+          {/* Stats Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <Card style={{ padding: '16px 20px' }}>
+              <div style={{ color: 'var(--warning)', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>CoinFluence (250k+)</div>
+              <div style={{ display: 'flex', gap: '24px' }}>
+                <div><div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Emails</div><div style={{ fontSize: '22px', fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>{coinFluenceEmails.length}</div></div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Velocity</div><div style={{ fontSize: '22px', fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>{cfLastHour}/hr</div></div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Daily Est.</div><div style={{ fontSize: '22px', fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>{cfLastHour * 24}</div></div>
+              </div>
+            </Card>
+            
+            <Card style={{ padding: '16px 20px' }}>
+              <div style={{ color: 'var(--accent-purple-light)', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>CreatorPredict (10k-250k)</div>
+              <div style={{ display: 'flex', gap: '24px' }}>
+                <div><div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Emails</div><div style={{ fontSize: '22px', fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>{creatorPredictEmails.length}</div></div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Velocity</div><div style={{ fontSize: '22px', fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>{cpLastHour}/hr</div></div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Daily Est.</div><div style={{ fontSize: '22px', fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>{cpLastHour * 24}</div></div>
+              </div>
+            </Card>
+            
+            <Card style={{ padding: '16px 20px' }}>
+              <div style={{ color: 'var(--success)', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Fleet Status</div>
+              <div style={{ display: 'flex', gap: '24px' }}>
+                <div><div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Active</div><div style={{ fontSize: '22px', fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>{activeDevices}/{monitoredDevices.length}</div></div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Total Scraped</div><div style={{ fontSize: '22px', fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>{data.length}</div></div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Server Fleet */}
+          <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)' }}>
+              Server Fleet ({devices.length} total, {monitoredDevices.length} monitored)
+            </span>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: "'IBM Plex Mono', monospace" }}>
+              Last update: {lastUpdate?.toLocaleTimeString() || '--'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            {devices.map((device, i) => (
+              <ServerCard
+                key={device.name}
+                device={device}
+                index={i}
+                override={overrides[device.name]}
+                onOverrideChange={handleOverrideChange}
+              />
+            ))}
+          </div>
+
+          <LiveFeed data={data} />
+        </div>
+      );
+    };
+
+    // ============ AGENT TAB ============
+    const AgentTab = () => {
+      const [agentStatus, setAgentStatus] = React.useState('loading');
+      const [dbStatus, setDbStatus] = React.useState('--');
+      const [endpoints, setEndpoints] = React.useState({});
+      const [loading, setLoading] = React.useState({});
+
+      const checkHealth = React.useCallback(async () => {
+        try {
+          const response = await fetch(`${AGENT_API_BASE}/health`);
+          const data = await response.json();
+          setAgentStatus('connected');
+          setDbStatus(data.database);
+        } catch (err) {
+          setAgentStatus('error');
+          setDbStatus('--');
+        }
+      }, []);
+
+      React.useEffect(() => {
+        checkHealth();
+        const interval = setInterval(checkHealth, 30000);
+        return () => clearInterval(interval);
+      }, [checkHealth]);
+
+      const executeEndpoint = async (id, method, path) => {
+        setLoading(prev => ({ ...prev, [id]: true }));
+        const startTime = performance.now();
+        
+        try {
+          const response = await fetch(`${AGENT_API_BASE}${path}`, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const data = await response.json();
+          const duration = Math.round(performance.now() - startTime);
+          
+          setEndpoints(prev => ({
+            ...prev,
+            [id]: { ok: response.ok, status: response.status, statusText: response.statusText, data, duration }
+          }));
+        } catch (err) {
+          setEndpoints(prev => ({
+            ...prev,
+            [id]: { ok: false, status: 0, statusText: 'Connection Error', data: { error: err.message }, duration: 0 }
+          }));
+        } finally {
+          setLoading(prev => ({ ...prev, [id]: false }));
+        }
+      };
+
+      return (
+        <div style={{ animation: 'slideIn 0.3s ease' }}>
+          {/* Status Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '24px',
+            padding: '14px 20px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '10px',
+            marginBottom: '24px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <StatusDot status={agentStatus} />
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                {agentStatus === 'connected' ? 'API Connected' : agentStatus === 'error' ? 'API Offline' : 'Checking...'}
+              </span>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Database: {dbStatus}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>v1.0.0</div>
+          </div>
+
+          {/* Main Action */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Main Action
+            </div>
+            <Card glow>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '20px 24px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <Badge variant="success" glow>POST</Badge>
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>/poll</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', paddingLeft: '16px', borderLeft: '1px solid var(--border-subtle)' }}>
+                    Poll Gmail & process new messages
+                  </span>
+                </div>
+                <button
+                  onClick={() => executeEndpoint('poll', 'POST', '/poll')}
+                  disabled={loading.poll}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '12px 24px',
+                    background: loading.poll ? 'var(--bg-elevated)' : 'linear-gradient(135deg, var(--accent-purple), var(--accent-violet))',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: loading.poll ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: loading.poll ? 'none' : '0 4px 20px var(--accent-purple-glow)',
+                  }}
+                >
+                  {loading.poll ? (
+                    <>
+                      <svg style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 12a9 9 0 11-6.219-8.56" />
+                      </svg>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <svg style={{ width: 16, height: 16 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                      </svg>
+                      Execute
+                    </>
+                  )}
+                </button>
+              </div>
+              {endpoints.poll && (
+                <div style={{
+                  padding: '16px 24px',
+                  background: 'var(--bg-secondary)',
+                  borderTop: '1px solid var(--border-subtle)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <StatusDot status={endpoints.poll.ok ? 'active' : 'down'} size={8} />
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: endpoints.poll.ok ? 'var(--success)' : 'var(--error)' }}>
+                        {endpoints.poll.status} {endpoints.poll.statusText}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'IBM Plex Mono', monospace" }}>
+                      {endpoints.poll.duration}ms
+                    </span>
+                  </div>
+                  <pre style={{
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    fontSize: '11px',
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    color: 'var(--text-secondary)',
+                    overflow: 'auto',
+                    maxHeight: '350px',
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}>
+                    {JSON.stringify(endpoints.poll.data, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Conversations */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Conversations
+            </div>
+            <AgentEndpoint
+              method="GET"
+              path="/conversations"
+              description="List all conversations"
+              onExecute={() => executeEndpoint('conversations', 'GET', '/conversations')}
+              loading={loading.conversations}
+              response={endpoints.conversations}
+            />
+            <AgentEndpoint
+              method="GET"
+              path="/creators"
+              description="List all creators"
+              onExecute={() => executeEndpoint('creators', 'GET', '/creators')}
+              loading={loading.creators}
+              response={endpoints.creators}
+            />
+          </div>
+
+          {/* System */}
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              System
+            </div>
+            <AgentEndpoint
+              method="GET"
+              path="/health"
+              description="Health check"
+              onExecute={() => executeEndpoint('health', 'GET', '/health')}
+              loading={loading.health}
+              response={endpoints.health}
+            />
+          </div>
+        </div>
+      );
+    };
+
+    // ============ MAIN APP ============
+    function App() {
+      const [activeTab, setActiveTab] = React.useState('scraper');
+
+      return (
+        <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '28px',
+            paddingBottom: '20px',
+            borderBottom: '1px solid var(--border-subtle)',
+          }}>
+            <div>
+              <h1 style={{
+                fontSize: '26px',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.5px',
+                marginBottom: '4px',
+              }}>
+                Creator<span style={{ color: 'var(--accent-purple-light)' }}>Predict</span>
+              </h1>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Unified Command Center</p>
+            </div>
+            <TabNav activeTab={activeTab} setActiveTab={setActiveTab} />
+          </div>
+
+          {/* Content */}
+          {activeTab === 'scraper' ? <ScraperTab /> : <AgentTab />}
+
+          {/* Footer */}
+          <div style={{
+            marginTop: '32px',
+            paddingTop: '16px',
+            borderTop: '1px solid var(--border-subtle)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            color: 'var(--text-muted)',
+            fontSize: '11px',
+          }}>
+            <span>CreatorPredict Command Center v2.0</span>
+            <span>Auto-refresh: 30s</span>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
