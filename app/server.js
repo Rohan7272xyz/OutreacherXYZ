@@ -48,8 +48,15 @@ for (const t of TARGETS) {
   procs[t] = { child: null, status: 'idle', awaitingLogin: false, sessionLeads: 0, log: [], sse: [] };
 }
 
+// npm and playwright emit colour codes and progress-bar redraws; strip them so
+// the panel's log reads as plain text.
+// eslint-disable-next-line no-control-regex
+const ANSI = /\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07|[\r\b]/g;
+
 function pushLog(target, line) {
   const p = procs[target];
+  line = line.replace(ANSI, '').trimEnd();
+  if (!line) return;
   p.log.push(line);
   if (p.log.length > 500) p.log.splice(0, p.log.length - 500);
   const payload = `data: ${JSON.stringify({ line })}\n\n`;

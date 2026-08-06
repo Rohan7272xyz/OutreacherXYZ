@@ -8,7 +8,7 @@
     "ig": "node run-instagram.js",
     "tt": "node run-tiktok.js",
     "validate": "node src/validate-emails.js",
-    "test": "node --test test/util.test.js",
+    "test": "node --test test/util.test.js test/engine.test.js",
     "test:e2e": "node test/e2e.js"
   },
   "dependencies": {

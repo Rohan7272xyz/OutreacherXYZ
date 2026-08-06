@@ -67,6 +67,10 @@ class BaseScraper {
     };
   }
 
+  // Subclass hook: runs against every new context, before its first page is
+  // opened, so per-context setup survives a session rotation.
+  async onContextCreated() {}
+
   async init() {
     this.log('Starting browser...');
     this.browser = await chromium.launch({
@@ -74,6 +78,7 @@ class BaseScraper {
       args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
     });
     this.context = await this.browser.newContext(this.contextOptions());
+    await this.onContextCreated();
     this.page = await this.context.newPage();
     this.log(`Browser ready (${this.currentDevice.width}x${this.currentDevice.height})`);
     await this.sheets.init();
@@ -85,6 +90,7 @@ class BaseScraper {
     const cookies = await this.context.cookies();
     await this.context.close();
     this.context = await this.browser.newContext(this.contextOptions());
+    await this.onContextCreated();
     await this.context.addCookies(cookies);
     this.page = await this.context.newPage();
     this.log(`Session rotated (${this.currentDevice.width}x${this.currentDevice.height})`);

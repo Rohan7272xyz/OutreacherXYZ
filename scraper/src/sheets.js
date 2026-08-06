@@ -111,7 +111,8 @@ class SheetsSync {
     this.knownEmails.add(clean);
     this.appendBackup(clean, username, followers);
 
-    if (!this.initialized) return false;
+    // The lead is captured either way; the sheet write is the optional half.
+    if (!this.initialized) return true;
     this.pendingRows.push([clean, username]);
     this.scheduleFlush();
     this.log('Queued: ' + clean + ' (@' + username + ')');

@@ -35,8 +35,7 @@ class TikTokScraper extends BaseScraper {
   feedUrl() { return `${this.baseUrl}/foryou`; }
   profileUrl(username) { return `${this.baseUrl}/@${username}`; }
 
-  async init() {
-    await super.init();
+  async onContextCreated() {
     await this.context.addInitScript(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     });
@@ -194,6 +193,7 @@ class TikTokScraper extends BaseScraper {
         }
 
         this.consecutiveAlreadyChecked = 0;
+        this.errorCount = 0;
         this.visited.add(username);
         this.stats.profiles++;
 
@@ -228,8 +228,15 @@ class TikTokScraper extends BaseScraper {
       } catch (err) {
         if (this.stopping) break;
         this.log(`  !! ${err.message}`);
+        this.errorCount = (this.errorCount || 0) + 1;
         await this.delay(3, 8);
-        await this.resetToFeed();
+        // One bad profile isn't worth throwing the feed away; repeated errors are.
+        if (this.errorCount >= 3) {
+          await this.resetToFeed();
+          this.errorCount = 0;
+        } else {
+          await this.advanceFeed();
+        }
       }
     }
   }

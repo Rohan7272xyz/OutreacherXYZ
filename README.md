@@ -32,7 +32,7 @@ Everything below this line is for people who want to poke at the internals.
    ```bash
    export SHEET_ID=<the long id from your sheet's URL>
    ```
-   The dashboard is static, so also replace `YOUR_SHEET_ID` inside `scraper/index.html`.
+   (`scraper/index.html` is the older standalone status page kept from the original project. The control panel in `app/` replaces it; if you still want the standalone one, replace `YOUR_SHEET_ID` inside it too.)
 
 3. **Install deps**
    ```bash
