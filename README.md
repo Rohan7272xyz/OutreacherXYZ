@@ -2,10 +2,22 @@
 
 Creator-outreach automation: scrape Instagram + TikTok creator profiles, collect the emails into a Google Sheet, then (optionally) run a templated outreach pipeline from that sheet via the Gmail API.
 
+## 🚀 Quick start (no terminal needed)
+
+1. **Install Node.js** — grab the LTS version from [nodejs.org](https://nodejs.org/en/download) and run the installer.
+2. **Double-click the launcher** — `Start OutreacherXYZ.command` on Mac, `Start OutreacherXYZ.bat` on Windows.
+   *(Mac: if it's blocked the first time, right-click the file → Open → Open.)*
+3. Your browser opens **http://localhost:4242** with a setup wizard that installs everything, walks you through Google access, and connects your sheet. After that it's a dashboard: press Start, log in when the browser window pops up, and watch leads flow into your sheet.
+
+Everything below this line is for people who want to poke at the internals.
+
+---
+
 ## Layout
 
 | Folder | What it is |
 |---|---|
+| `app/` | The local control panel: a zero-dependency Node web server (`app/server.js`, port 4242) serving the setup wizard + dashboard GUI. It installs the scraper's dependencies, stores your sheet config, launches/stops the scrapers, and streams their logs live. |
 | `scraper/` | The unified IG + TikTok scraper ("ScraperUltra"). Playwright-driven browser that walks profiles, extracts public emails, routes them by follower count, and syncs rows into a Google Sheet. Includes a status dashboard (`index.html`) and an email watchdog (`alerts/`). |
 | `pipeline/` | Outreach sender. Reads leads from the sheet, sends templated emails through the Gmail API per "company" profile, moves sent rows to a Sent tab. `daily-pipeline.js` chains filter → validate → send. |
 | `legacy/tiktokscraperv1/` | The original standalone TikTok scraper the unified one grew out of. Kept for reference; you probably want `scraper/` instead. |
@@ -32,13 +44,32 @@ Creator-outreach automation: scrape Instagram + TikTok creator profiles, collect
 
 ```bash
 cd scraper
-npm run ig            # Instagram
-npm run tt            # TikTok
-npm run ig:parental   # resilient runner: auto-pauses during a 1–4 AM wifi blackout window
-npm run validate      # re-verify collected emails
+npm run ig                          # Instagram
+npm run tt                          # TikTok
+npm run tt -- --min 10000 --max 250000
+npm run validate                    # re-verify collected emails
+npm test                            # unit tests
+npm run test:e2e                    # drives the engine against a local fake feed
+node run-resilient.js instagram     # supervisor: auto-restarts on crash
 ```
 
-Follower-count routing (which tab a lead lands in) lives in the platform files under `scraper/src/platforms/`.
+### Settings
+
+Everything is an environment variable, so the control panel can set it without editing code.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `SHEET_ID` | — | Target spreadsheet. Unset = leads go to `output/leads-backup.csv` only. |
+| `LEADS_TAB` | `crosscheck` | Tab new leads are appended to. |
+| `MIN_FOLLOWERS` / `MAX_FOLLOWERS` | `0` / none | Follower gate. Both bounds are enforced. |
+| `HEADLESS` | `false` | Headed by default — you need to see the browser to log in. |
+| `PERSIST_VISITED` | `true` | Remember checked creators across restarts (`output/visited-*.json`). |
+| `BLACKOUT_ENABLED` | `false` | Optional nightly pause, for a machine whose network is cut on a schedule. |
+| `BLACKOUT_START` / `BLACKOUT_END` / `BLACKOUT_TZ` | `01:15` / `04:15` / `America/New_York` | When that pause runs. |
+
+### How the engine works
+
+Each run keeps **two tabs**: one parked on the feed, one opened per profile and closed after. The feed tab never navigates, so after checking a creator the scraper advances with a single keypress instead of reloading the feed and skipping past everything it already saw. Leads are appended to `output/leads-backup.csv` the instant they're found — the Sheets write is a batched, retried background step, so an API hiccup can't lose a lead. De-duplication happens in memory against a set loaded once at startup rather than re-reading the sheet for every address.
 
 ## Running the outreach pipeline
 

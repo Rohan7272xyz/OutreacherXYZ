@@ -1,9 +1,13 @@
 node_modules/
 output/
 session.json
+session-*.json
 .env
 .vercel
 *.zip
+
+# local app state
+app/config.json
 
 # real credentials — never commit these (use the .example templates)
 credentials.json

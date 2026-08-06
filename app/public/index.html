@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OutreacherXYZ</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📬</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">📬</span>
+    <span class="brand-name">Outreacher<span class="brand-xyz">XYZ</span></span>
+  </div>
+  <div class="topbar-actions">
+    <a id="open-sheet" class="btn btn-ghost hidden" target="_blank" rel="noopener">Open my sheet ↗</a>
+    <button id="btn-setup" class="btn btn-ghost hidden">Settings</button>
+  </div>
+</header>
+
+<!-- ============ WIZARD ============ -->
+<main id="wizard" class="hidden">
+  <ol class="stepper">
+    <li data-step="0">Welcome</li>
+    <li data-step="1">Install</li>
+    <li data-step="2">Google access</li>
+    <li data-step="3">Your sheet</li>
+  </ol>
+
+  <!-- Step 0 -->
+  <section class="card step" data-step="0">
+    <h1>Welcome 👋</h1>
+    <p class="lede">OutreacherXYZ finds content creators on Instagram and TikTok, collects their
+    public contact emails, and drops every lead into a Google Sheet you own.</p>
+    <ul class="feature-list">
+      <li><strong>Runs on your computer.</strong> Nothing is uploaded anywhere except your own Google Sheet.</li>
+      <li><strong>You stay in control.</strong> A browser window opens, you log in to your account, and the tool does the tedious part.</li>
+      <li><strong>One-time setup.</strong> The next three steps take about 10 minutes, once.</li>
+    </ul>
+    <div class="step-nav"><span></span><button class="btn btn-primary" data-next>Get started →</button></div>
+  </section>
+
+  <!-- Step 1 -->
+  <section class="card step hidden" data-step="1">
+    <h1>Install the engine</h1>
+    <p class="lede">The scraper needs a couple of components. Click the button and let it run — it can take a few minutes.</p>
+    <ul class="checklist">
+      <li id="chk-node"><span class="chk"></span>Node.js <span class="chk-note" id="node-version"></span></li>
+      <li id="chk-deps"><span class="chk"></span>Scraper libraries</li>
+      <li id="chk-chromium"><span class="chk"></span>Browser engine (Chromium)</li>
+    </ul>
+    <div class="row">
+      <button id="btn-install" class="btn btn-primary">Install everything for me</button>
+      <span id="install-status" class="muted"></span>
+    </div>
+    <pre id="install-log" class="console hidden"></pre>
+    <div class="step-nav"><button class="btn" data-back>← Back</button><button class="btn btn-primary" data-next id="next-1" disabled>Continue →</button></div>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="card step hidden" data-step="2">
+    <h1>Give it Google access</h1>
+    <p class="lede">The tool writes leads into a Google Sheet using its own robot account
+    (a “service account”). You create one in Google Cloud and hand its key file to the tool.
+    Fiddly, but one-time — follow along:</p>
+    <ol class="guide">
+      <li>Open <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">console.cloud.google.com/projectcreate</a> and create a project (any name, e.g. <em>outreacher</em>).</li>
+      <li>Enable the Sheets API for it: <a href="https://console.cloud.google.com/apis/library/sheets.googleapis.com" target="_blank" rel="noopener">click here</a> → <em>Enable</em>.</li>
+      <li>Go to <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener">Service accounts</a> → <em>Create service account</em> (any name) → Done. No roles needed.</li>
+      <li>Click the account you just made → <em>Keys</em> tab → <em>Add key → Create new key → JSON</em>. A <code>.json</code> file downloads.</li>
+      <li>Drop that file below.</li>
+    </ol>
+    <label id="dropzone" class="dropzone">
+      <input type="file" id="creds-file" accept=".json,application/json" hidden>
+      <span id="dropzone-label">Drop the key file here, or click to choose it</span>
+    </label>
+    <div id="creds-ok" class="callout callout-good hidden">
+      <div>✓ Key saved. Your robot account is:</div>
+      <div class="row"><code id="client-email"></code><button id="btn-copy-email" class="btn btn-small">Copy</button></div>
+      <div class="muted">You’ll share your sheet with this address in the next step.</div>
+    </div>
+    <div id="creds-err" class="callout callout-bad hidden"></div>
+    <div class="step-nav"><button class="btn" data-back>← Back</button><button class="btn btn-primary" data-next id="next-2" disabled>Continue →</button></div>
+  </section>
+
+  <!-- Step 3 -->
+  <section class="card step hidden" data-step="3">
+    <h1>Connect your sheet</h1>
+    <ol class="guide">
+      <li>Create a blank sheet at <a href="https://sheets.new" target="_blank" rel="noopener">sheets.new</a> and give it a name.</li>
+      <li>Click <em>Share</em> and add <code class="client-email-echo">your robot account</code> as an <strong>Editor</strong>.</li>
+      <li>Paste the sheet’s URL below.</li>
+    </ol>
+    <div class="row">
+      <input type="text" id="sheet-url" class="input" placeholder="https://docs.google.com/spreadsheets/d/…" spellcheck="false">
+      <button id="btn-connect-sheet" class="btn btn-primary">Connect</button>
+    </div>
+    <div id="sheet-ok" class="callout callout-good hidden"></div>
+    <div id="sheet-err" class="callout callout-bad hidden"></div>
+    <div class="step-nav"><button class="btn" data-back>← Back</button><button class="btn btn-primary hidden" id="btn-finish">Finish setup ✓</button></div>
+  </section>
+</main>
+
+<!-- ============ DASHBOARD ============ -->
+<main id="dashboard" class="hidden">
+  <section class="tiles">
+    <div class="tile tile-hero">
+      <div class="tile-label">Total leads collected</div>
+      <div class="tile-value" id="stat-total">—</div>
+      <div class="tile-sub" id="stat-sheet-name"></div>
+    </div>
+    <div class="tile">
+      <div class="tile-label">CreatorPredict leads</div>
+      <div class="tile-value" id="stat-cp">—</div>
+    </div>
+    <div class="tile">
+      <div class="tile-label">CoinFluence leads</div>
+      <div class="tile-value" id="stat-cf">—</div>
+    </div>
+    <div class="tile">
+      <div class="tile-label">Emails sent</div>
+      <div class="tile-value" id="stat-sent">—</div>
+    </div>
+  </section>
+
+  <section class="runners">
+    <!-- template is cloned per platform by app.js -->
+    <template id="runner-template">
+      <div class="card runner">
+        <div class="runner-head">
+          <div class="runner-title">
+            <span class="runner-icon"></span>
+            <h2 class="runner-name"></h2>
+          </div>
+          <span class="pill" data-role="pill"><span class="dot"></span><span data-role="pill-text">Idle</span></span>
+        </div>
+        <div class="runner-controls">
+          <label class="field">Min followers <input type="number" data-role="min" class="input input-small" min="0" step="1000"></label>
+          <label class="field">Max followers <input type="number" data-role="max" class="input input-small" min="0" step="1000"></label>
+          <button class="btn btn-primary" data-role="start">▶ Start</button>
+          <button class="btn btn-danger hidden" data-role="stop">■ Stop</button>
+        </div>
+        <div class="callout callout-warn hidden" data-role="login-banner">
+          <div><strong>Your turn:</strong> a browser window just opened. Log in to your account there, then come back and press continue.</div>
+          <button class="btn btn-primary" data-role="continue">I’m logged in — continue ✓</button>
+        </div>
+        <div class="runner-meta">
+          <span data-role="session-leads"></span>
+          <button class="btn btn-small btn-ghost" data-role="toggle-log">Show activity</button>
+        </div>
+        <pre class="console hidden" data-role="log"></pre>
+      </div>
+    </template>
+    <div id="runner-instagram"></div>
+    <div id="runner-tiktok"></div>
+  </section>
+
+  <section class="card outreach-note">
+    <h2>Sending outreach emails</h2>
+    <p class="muted">Collecting leads is the easy part — this panel keeps them flowing into your sheet.
+    The optional email-sending pipeline (templates, Gmail sending) is a power-user feature that lives in the
+    <code>pipeline/</code> folder; the README explains how to set it up if you want it.</p>
+  </section>
+
+  <footer class="foot">Runs entirely on this computer · your data lives only in your Google Sheet</footer>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

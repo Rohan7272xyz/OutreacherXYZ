@@ -1,0 +1,9 @@
+{
+  "name": "outreacherxyz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local control panel + scraper for collecting creator contact emails into a Google Sheet",
+  "scripts": {
+    "start": "node app/server.js"
+  }
+}

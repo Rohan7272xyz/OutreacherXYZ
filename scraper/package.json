@@ -1,15 +1,15 @@
 {
-  "name": "scraper-ultra",
-  "version": "2.0.0",
-  "description": "Unified Instagram + TikTok creator scraper for CrossCheck AI",
+  "name": "outreacherxyz-scraper",
+  "version": "3.0.0",
+  "description": "Instagram + TikTok creator email scraper",
   "scripts": {
     "instagram": "node run-instagram.js",
     "tiktok": "node run-tiktok.js",
     "ig": "node run-instagram.js",
     "tt": "node run-tiktok.js",
-    "ig:parental": "node run-resilient.js instagram --parental",
-    "tt:parental": "node run-resilient.js tiktok --parental",
-    "validate": "node src/validate-emails.js"
+    "validate": "node src/validate-emails.js",
+    "test": "node --test test/util.test.js",
+    "test:e2e": "node test/e2e.js"
   },
   "dependencies": {
     "googleapis": "^169.0.0",
