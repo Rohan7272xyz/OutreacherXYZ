@@ -232,11 +232,19 @@ function browsersPath() {
   return path.join(os.homedir(), '.cache', 'ms-playwright');
 }
 
+// Ask playwright where the binary should be and check it is actually there.
+// A directory alone is not proof: an interrupted download leaves the folder
+// behind with nothing usable in it.
 function chromiumInstalled() {
   try {
-    return fs.readdirSync(browsersPath()).some((d) => /^chromium-\d+/.test(d));
+    const { chromium } = require(path.join(SCRAPER, 'node_modules', 'playwright'));
+    return fs.existsSync(chromium.executablePath());
   } catch (err) {
-    return false;
+    try {
+      return fs.readdirSync(browsersPath()).some((d) => /^chromium-\d+/.test(d));
+    } catch (e) {
+      return false;
+    }
   }
 }
 
