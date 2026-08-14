@@ -202,6 +202,36 @@ function runInstall() {
 
 // ---------- helpers that shell out to scraper/tools ----------
 
+// Google's API errors are accurate but unreadable to anyone who hasn't set up a
+// service account before. Turn the ones people actually hit into instructions.
+function friendlyGoogleError(raw) {
+  const msg = String(raw || '');
+  const email = (() => {
+    try { return JSON.parse(fs.readFileSync(CREDS_PATH, 'utf8')).client_email; }
+    catch (err) { return 'the robot account'; }
+  })();
+
+  if (/invalid_grant|account not found|Invalid JWT|deleted/i.test(msg)) {
+    return 'That key belongs to a Google service account that no longer exists. '
+      + 'Create a new service account, download a fresh JSON key, and upload it again in step 3.';
+  }
+  if (/permission|forbidden|403|caller does not have/i.test(msg)) {
+    return `Your sheet hasn't been shared with the robot account yet. Open the sheet, click Share, `
+      + `and add ${email} as an Editor — then try again.`;
+  }
+  if (/not found|404|Unable to parse range|Requested entity/i.test(msg)) {
+    return 'No Google Sheet was found at that link. Check you pasted the full URL of a sheet you own.';
+  }
+  if (/API has not been used|disabled|SERVICE_DISABLED/i.test(msg)) {
+    return 'The Google Sheets API is not switched on for that project yet. '
+      + 'Open the Sheets API page linked in step 3 and click Enable, then try again.';
+  }
+  if (/ENOTFOUND|EAI_AGAIN|ETIMEDOUT|network|socket hang up/i.test(msg)) {
+    return 'Could not reach Google. Check your internet connection and try again.';
+  }
+  return msg;
+}
+
 function runTool(script, cb) {
   const cfg = loadConfig();
   const child = spawn(process.execPath, [path.join('tools', script)], {
@@ -348,6 +378,7 @@ const server = http.createServer((req, res) => {
     if (Date.now() - statsCache.at < 30000 && statsCache.data) return json(res, 200, statsCache.data);
     return runTool('sheet-stats.js', (result) => {
       if (result.ok) statsCache = { at: Date.now(), data: result };
+      else result.error = friendlyGoogleError(result.error);
       json(res, 200, result);
     });
   }
@@ -382,6 +413,7 @@ const server = http.createServer((req, res) => {
   if (p === '/api/sheet/setup' && req.method === 'POST') {
     return runTool('setup-sheet.js', (result) => {
       if (result.ok) saveConfig({ sheetTitle: result.title });
+      else result.error = friendlyGoogleError(result.error);
       json(res, 200, result);
     });
   }

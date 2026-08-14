@@ -244,7 +244,15 @@ function fmt(n) {
 async function loadStats() {
   if (!state || !state.setupComplete) return;
   const s = await api.get('/api/stats');
-  if (!s.ok) return;
+  const banner = $('#stats-error');
+  if (!s.ok) {
+    // Never leave dashes on screen with no explanation — an auth or sharing
+    // problem looks exactly like "no leads yet" otherwise.
+    banner.textContent = s.error || 'Could not read your sheet.';
+    banner.classList.remove('hidden');
+    return;
+  }
+  banner.classList.add('hidden');
   $('#stat-total').textContent = fmt(s.leads.crosscheck);
   $('#stat-cp').textContent = fmt(s.leads.creatorPredict);
   $('#stat-cf').textContent = fmt(s.leads.coinFluence);

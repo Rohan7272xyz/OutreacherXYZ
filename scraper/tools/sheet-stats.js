@@ -25,6 +25,10 @@ async function main() {
   });
   const sheets = google.sheets({ version: 'v4', auth });
 
+  // Probe access first. Without this, a total auth failure looks identical to
+  // "your tabs are empty" — every per-tab read fails and reports zero.
+  await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID, fields: 'properties.title' });
+
   const [crosscheck, creatorPredict, coinFluence, sentCF, sentCP] = await Promise.all([
     countRows(sheets, 'crosscheck!A:A'),
     countRows(sheets, 'CreatorPredict!A:A'),
